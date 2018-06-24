@@ -2220,6 +2220,19 @@ static int32_t TryChangeSocketEventRegistrationInner(
                0,
                0,
                GetKeventUdata(data));
+#if defined(__FreeBSD__)
+        // FreeBSD seems to have some issue when setting read/write events together.
+        if (writeChanged)
+        {
+            int rerr;
+            while ((rerr = kevent(port, events, GetKeventNchanges(i), NULL, 0, NULL)) < 0 && errno == EINTR);
+            if (rerr !=0)
+            {
+                return SystemNative_ConvertErrorPlatformToPal(errno);
+            }
+            i = 0;
+        }
+#endif
     }
 
     if (writeChanged)
